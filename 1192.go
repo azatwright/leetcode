@@ -1,53 +1,57 @@
 package main
 
 func criticalConnections(n int, connections [][]int) [][]int {
+	edgedic := map[[2]int]bool{}
+	for _, c := range connections {
+		edgedic[[2]int{c[0], c[1]}] = true
+	}
+
 	children := map[int][]int{}
 	for _, c := range connections {
 		children[c[0]] = append(children[c[0]], c[1])
 		children[c[1]] = append(children[c[1]], c[0])
 	}
 
-	var buf []int
-	critic := map[[2]int]bool{}
+	edgeused := map[[2]int]bool{}
+	nodenum := map[int]int{}
+	nodecounter := 0
 
-	var critical func(int, int) bool
-	critical = func(a, b int) bool {
-		seen := map[int]bool{a: true}
-		q := buf[:0]
-		q = append(q, a)
-		for len(q) != 0 {
-			prevlen := len(q)
-			for i := 0; i < prevlen; i++ {
-				if q[i] == b {
-					return false
-				}
-				for _, child := range children[q[i]] {
-					if q[i] == a && child == b {
-						continue
-					}
-					if critic[[2]int{q[i], child}] {
-						continue
-					}
-					if !seen[child] {
-						q = append(q, child)
-					}
-				}
-				seen[q[i]] = true
-			}
-			copy(q, q[prevlen:])
-			q = q[:len(q[prevlen:])]
+	var dfs func(int) int
+	dfs = func(node int) int {
+		if n, ok := nodenum[node]; ok {
+			return n
 		}
-		return true
+		nodenum[node] = nodecounter
+		nodecounter++
+
+		rank := nodecounter - 1
+		for _, child := range children[node] {
+			if !edgeused[[2]int{node, child}] && !edgeused[[2]int{child, node}] {
+				edgeused[[2]int{node, child}] = true
+				if ret := dfs(child); ret <= nodenum[node] {
+					delete(edgedic, [2]int{node, child})
+					delete(edgedic, [2]int{child, node})
+					rank = min(rank, ret)
+				}
+			}
+		}
+
+		return rank
 	}
+
+	dfs(0)
 
 	out := [][]int{}
-	for _, c := range connections {
-		if critical(c[0], c[1]) {
-			out = append(out, []int{c[0], c[1]})
-			critic[[2]int{c[0], c[1]}] = true
-			critic[[2]int{c[1], c[0]}] = true
-		}
+	for c := range edgedic {
+		out = append(out, []int{c[0], c[1]})
 	}
-
 	return out
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	} else {
+		return b
+	}
 }

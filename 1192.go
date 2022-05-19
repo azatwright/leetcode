@@ -13,30 +13,40 @@ func criticalConnections(n int, connections [][]int) [][]int {
 	}
 
 	edgeused := map[[2]int]bool{}
-	nodenum := map[int]int{}
+	nodeindex := map[int]int{}
 	nodecounter := 0
 
 	var dfs func(int) int
 	dfs = func(node int) int {
-		if n, ok := nodenum[node]; ok {
+		if n, ok := nodeindex[node]; ok {
 			return n
 		}
-		nodenum[node] = nodecounter
+		nodeindex[node] = nodecounter
 		nodecounter++
 
-		rank := nodecounter - 1
+		// dfs may reach any visited node, thus detecting a loop.
+		// Of all visited nodes that can be reached from the
+		// current node, minindex is the index of the node that
+		// was visited earlier than any other, thus detecting the
+		// longest loop.
+		//
+		// Because dfs returns minindex, the parent can know if
+		// its child makes a loop with it or its ancestors.
+		//
+		minindex := nodeindex[node]
+
 		for _, child := range children[node] {
 			if !edgeused[[2]int{node, child}] && !edgeused[[2]int{child, node}] {
 				edgeused[[2]int{node, child}] = true
-				if ret := dfs(child); ret <= nodenum[node] {
+				if ret := dfs(child); ret <= nodeindex[node] {
 					delete(edgedic, [2]int{node, child})
 					delete(edgedic, [2]int{child, node})
-					rank = min(rank, ret)
+					minindex = min(minindex, ret)
 				}
 			}
 		}
 
-		return rank
+		return minindex
 	}
 
 	dfs(0)
